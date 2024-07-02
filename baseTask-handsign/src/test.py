@@ -102,6 +102,9 @@ class ResNet(nn.Module):
 device = torch.device("mps" if torch.backends.mps.is_built() else "cpu")
 model = ResNet(ResidualBlock, [2, 2, 2, 2]).to(device)
 
+# Print model structure
+print(model)
+
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-5)
 
@@ -112,6 +115,9 @@ num_epochs = 15  # Increase the number of epochs
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
+    correct_train = 0
+    total_train = 0
+
     for images, labels in train_loader:
         images, labels = images.to(device), labels.to(device)
 
@@ -125,27 +131,40 @@ for epoch in range(num_epochs):
         optimizer.step()
         running_loss += loss.item()
 
+        _, predicted = torch.max(outputs, 1)
+        total_train += labels.size(0)
+        correct_train += (predicted == labels).sum().item()
+
     scheduler.step()
 
     epoch_loss = running_loss / len(train_loader)
-    print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}')
+    train_accuracy = 100 * correct_train / total_train
+
+    # Evaluate on test set
+    model.eval()
+    test_loss = 0.0
+    correct_test = 0
+    total_test = 0
+
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            test_loss += loss.item()
+
+            _, predicted = torch.max(outputs, 1)
+            total_test += labels.size(0)
+            correct_test += (predicted == labels).sum().item()
+
+    test_loss /= len(test_loader)
+    test_accuracy = 100 * correct_test / total_test
+
+    print(
+        f'Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%, Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%')
 
 # Save the trained model
 torch.save(model.state_dict(), 'resnet_model.pth')
-
-model.eval()
-all_preds = []
-all_labels = []
-with torch.no_grad():
-    for images, labels in test_loader:
-        images, labels = images.to(device), labels.to(device)
-        outputs = model(images)
-        _, preds = torch.max(outputs, 1)
-        all_preds.extend(preds.cpu().numpy())
-        all_labels.extend(labels.cpu().numpy())
-
-accuracy = accuracy_score(all_labels, all_preds)
-print(f'Classification accuracy: {accuracy}')
 
 # Load validation data
 X_val = np.load('../self-data/test/X_val.npy')  # Shape: (N, 64, 64)
@@ -183,4 +202,3 @@ with torch.no_grad():
 
 val_accuracy = accuracy_score(val_labels, val_preds)
 print(f'Validation accuracy: {val_accuracy}')
-
