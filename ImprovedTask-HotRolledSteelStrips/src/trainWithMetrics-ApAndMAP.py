@@ -147,11 +147,11 @@ no_of_classes = len(np.unique(y_test))
 
 # y_test = np_utils.to_categorical(y_test,no_of_classes)
 from keras.utils import to_categorical
-print(y_test)
+# print(y_test)
 y_test = to_categorical(y_test, num_classes=no_of_classes)
-
-print(y_test.shape)
-print(y_test)
+#
+# print(y_test.shape)
+# print(y_test)
 from keras.preprocessing.image import array_to_img, img_to_array, load_img
 def convert_image_to_array(files):
     images_as_array=[]
@@ -173,3 +173,22 @@ mean_ap, ap_per_class = calculate_mean_ap(y_test, y_pred, num_classes)
 
 print(f"Mean AP: {mean_ap}")
 print(f"AP per class: {ap_per_class}")
+
+classes = ['Crazing', 'Inclusion', 'Patches', 'Pitted', 'Rolled', 'Scratches']
+
+# Plotting- ap 和 map 的可视化展示
+
+plt.figure(figsize=(10, 6))
+bars = plt.bar(classes, ap_per_class, color='skyblue')
+plt.axhline(y=mean_ap, color='r', linestyle='--', label=f'Mean AP: {mean_ap:.2f}')
+plt.xlabel('Classes')
+plt.ylabel('AP')
+plt.title('AP per Class and Mean AP')
+plt.legend()
+
+# Adding text labels on bars
+for bar in bars:
+    height = bar.get_height()
+    plt.text(bar.get_x() + bar.get_width() / 2.0, height, f'{height:.2f}', ha='center', va='bottom')
+
+plt.show()
